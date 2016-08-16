@@ -1,5 +1,6 @@
 # Sensitive Files
-config.py
+config_bot.*
+tags
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
