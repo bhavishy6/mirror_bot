@@ -1,6 +1,7 @@
 import praw
 import re
 import config_bot
+import os
 
 def mirrors_requested(c):
     text = c.body
@@ -23,44 +24,23 @@ def bot_action(c, respond=True):
     print "comments in submission", len(flat_comments)
 
     for comment in flat_comments:
-        found_links = check_comment_for_mirrors(comment)
-        if found_links > 0:
-            for link in found_links:
+        comment_links = []
+        comment_links = check_comment_for_mirrors(comment)
+
+        if len(comment_links) > 0:
+            for link in comment_links:
+                print "LINK FOUND" + link
                 links.append(link)
-        else:
-            print "no links in this: " + comment.body
+
 
     if respond:
-        for l in links:
-            print l
-    # for c in praw.helpers.flatten_tree(submission.comments):
-    #     for link in check_comment_for_mirrors(c):
-    #         print "[bot_action]: mirror_found: " + link
-    #         links.append(link)
-    #
-    # if len(links) > 0:
-    #     for link in links:
-    #         print link
-    #     # reply(links, verbose ,respond)
-
-
-
-def reply(links, verbose=True, respond=False):
-    if verbose:
-        print c.body.encode("UTF-8")
-        print "\n\n~~~~~~~~~~~~~~~~~~~~~~~~~~\n\n"
-
-    if respond:
-        print "Mirrors Found:\n"
-        for link in links:
-            print link + "\n"
-
+        reply(c, links, respond=True)
 
 def check_comment_for_mirrors(c):
     text = c.body
     links = []
 
-    if text.find("mirror") > 0:
+    if text.find("mirror") > -1:
         print "[MIRROR FOUND?]: " + text
         links = re.findall('http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+', text)
 
@@ -69,17 +49,30 @@ def check_comment_for_mirrors(c):
 
     return links
 
+def reply(c, links, respond=False):
+    target_submission = r.get_submission(submission_id=c.submission.id)
+
+
+    reply_header = "Mirrors Found:\n"
+    reply_body = ",".join(links)
+
+    print reply_header + reply_body
+    if respond:
+        c.reply(reply_header + reply_body)
+
 
 if __name__ == '__main__':
-    user_agent = ("Mirror Finder 1.0 by u/bhavishy6")
+
+    user_agent = ("Auto Mirror Finder 1.0 by u/bhavishy6")
     r = praw.Reddit(user_agent=user_agent,client_id=config_bot.CLIENT_ID,
                         client_secret=config_bot.CLIENT_SECRET,
                         redirect_url=config_bot.REDIRECT_URL)
 
-    # r.login(REDDIT_USERNAME, REDDIT_PASS)
+    r.login(config_bot.REDDIT_USERNAME, config_bot.REDDIT_PASS)
     subreddit = r.get_subreddit('hiphopheads')
+
+
 
     for c in praw.helpers.comment_stream(r, 'hiphopheads'):
         if mirrors_requested(c):
-            # print c.body
             bot_action(c, respond=True)
